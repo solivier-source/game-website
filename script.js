@@ -1,262 +1,170 @@
-* {
-  box-sizing: border-box;
+/**
+ * SebasGames Hub - Core Javascript
+ * Beheert de game-loop, invoerregistratie en UI-interacties.
+ */
+
+// 1. UI Interactie: Soepel scrollen naar het spelscherm
+function scrollToGame() {
+    const gameSection = document.getElementById('game-section');
+    if (gameSection) {
+        gameSection.scrollIntoView({ behavior: 'smooth' });
+    }
 }
 
-:root {
-  --bg: #0f172a;
-  --bg-soft: #111827;
-  --panel: rgba(15, 23, 42, 0.8);
-  --panel-strong: #1e293b;
-  --text: #e2e8f0;
-  --muted: #94a3b8;
-  --primary: #8b5cf6;
-  --primary-2: #22c55e;
-  --secondary: #f59e0b;
-  --danger: #ef4444;
-  --border: rgba(148, 163, 184, 0.2);
-  --shadow: 0 18px 50px rgba(15, 23, 42, 0.45);
+// 2. Snake Game Setup
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const scoreElement = document.getElementById("current-score");
+
+// Constanten voor het raster (grid)
+const grid = 20;
+let count = 0;
+let score = 0;
+
+// Objectstructuur voor de slang
+let snake = {
+    x: 160,
+    y: 160,
+    dx: grid, // Snelheid horizontaal (start naar rechts)
+    dy: 0,    // Snelheid verticaal
+    cells: [],
+    maxCells: 4 // Startlengte van de slang
+};
+
+// Objectstructuur voor de appel
+let apple = {
+    x: 320,
+    y: 320
+};
+
+/**
+ * Genereert een willekeurig getal binnen een specifiek bereik
+ * Wordt gebruikt om de appel willekeurig te herplaatsen
+ */
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min)) + min;
 }
 
-html {
-  scroll-behavior: smooth;
+/**
+ * De hoofd Game Loop die continu ververst
+ */
+function loop() {
+    requestAnimationFrame(loop);
+
+    // Vertraag de animatie (fps limiter): voer de logica uit om de 6 frames (ca. 10 FPS)
+    if (++count < 6) {
+        return;
+    }
+    count = 0;
+
+    // Maak het canvas leeg voor de nieuwe frame
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Beweeg de slang op basis van zijn huidige snelheid richting
+    snake.x += snake.dx;
+    snake.y += snake.dy;
+
+    // Randdetectie (Wrap-around: slang komt aan de overkant weer tevoorschijn)
+    if (snake.x < 0) {
+        snake.x = canvas.width - grid;
+    } else if (snake.x >= canvas.width) {
+        snake.x = 0;
+    }
+    
+    if (snake.y < 0) {
+        snake.y = canvas.height - grid;
+    } else if (snake.y >= canvas.height) {
+        snake.y = 0;
+    }
+
+    // Voeg de nieuwe positie van de kop toe aan het begin van de cellen-array
+    snake.cells.unshift({ x: snake.x, y: snake.y });
+
+    // Verwijder de laatste cel van de staart om de lengte consistent te houden
+    if (snake.cells.length > snake.maxCells) {
+        snake.cells.pop();
+    }
+
+    // --- TEKEN DE APPEL ---
+    ctx.fillStyle = '#ef4444'; // Helder rood
+    ctx.fillRect(apple.x, apple.y, grid - 1, grid - 1);
+
+    // --- TEKEN & CONTROLER DE SLANG ---
+    snake.cells.forEach(function(cell, index) {
+        // Geef de kop een iets lichtere tint groen dan het lichaam voor visueel contrast
+        ctx.fillStyle = (index === 0) ? '#4ade80' : '#22c55e';
+        ctx.fillRect(cell.x, cell.y, grid - 1, grid - 1);  
+
+        // Slang eet de appel op
+        if (cell.x === apple.x && cell.y === apple.y) {
+            snake.maxCells++;
+            score += 10;
+            if (scoreElement) {
+                scoreElement.textContent = score;
+            }
+
+            // Plaats de appel direct op een willekeurige nieuwe positie in het grid
+            apple.x = getRandomInt(0, 20) * grid;
+            apple.y = getRandomInt(0, 20) * grid;
+        }
+
+        // Botsingsdetectie met eigen lichaam (Game Over check)
+        // We controleren of de kop (index 0) dezelfde positie deelt met een staartstuk (i > 0)
+        for (let i = index + 1; i < snake.cells.length; i++) {
+            if (cell.x === snake.cells[i].x && cell.y === snake.cells[i].y) {
+                resetGame();
+            }
+        }
+    });
 }
 
-body {
-  margin: 0;
-  font-family: 'Inter', sans-serif;
-  background: radial-gradient(circle at top, rgba(139, 92, 246, 0.22), transparent 30%),
-    linear-gradient(135deg, #020817, var(--bg));
-  color: var(--text);
+/**
+ * Reset alle variabelen naar de beginwaarden wanneer de speler af is
+ */
+function resetGame() {
+    snake.x = 160;
+    snake.y = 160;
+    snake.cells = [];
+    snake.maxCells = 4;
+    snake.dx = grid;
+    snake.dy = 0;
+    score = 0;
+    if (scoreElement) {
+        scoreElement.textContent = score;
+    }
+    apple.x = getRandomInt(0, 20) * grid;
+    apple.y = getRandomInt(0, 20) * grid;
 }
 
-button,
-input {
-  font: inherit;
-}
+// 3. Toetsenbord Input Registratie
+document.addEventListener('keydown', function(e) {
+    // Array met KeyCodes van pijltjestoetsen om default browser-scrolling te blokkeren
+    const arrowKeys =;
+    if (arrowKeys.includes(e.which)) {
+        e.preventDefault();
+    }
 
-.topbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.25rem 6vw;
-  border-bottom: 1px solid var(--border);
-  background: rgba(15, 23, 42, 0.7);
-  backdrop-filter: blur(8px);
-  position: sticky;
-  top: 0;
-  z-index: 20;
-}
+    // Pijltje Links (en mag niet direct naar rechts omkeren)
+    if (e.which === 37 && snake.dx === 0) {
+        snake.dx = -grid;
+        snake.dy = 0;
+    }
+    // Pijltje Omhoog (en mag niet direct naar beneden omkeren)
+    else if (e.which === 38 && snake.dy === 0) {
+        snake.dy = -grid;
+        snake.dx = 0;
+    }
+    // Pijltje Rechts (en mag niet direct naar links omkeren)
+    else if (e.which === 39 && snake.dx === 0) {
+        snake.dx = grid;
+        snake.dy = 0;
+    }
+    // Pijltje Omlaag (en mag niet direct omhoog omkeren)
+    else if (e.which === 40 && snake.dy === 0) {
+        snake.dy = grid;
+        snake.dx = 0;
+    }
+});
 
-.brand {
-  font-size: 1.5rem;
-  font-weight: 800;
-}
-
-nav {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-nav a {
-  color: var(--text);
-  text-decoration: none;
-  opacity: 0.8;
-}
-
-nav a:hover {
-  opacity: 1;
-}
-
-main {
-  width: min(1200px, 90vw);
-  margin: 0 auto;
-  padding: 3rem 0 5rem;
-}
-
-.hero {
-  display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
-  gap: 2rem;
-  align-items: center;
-  padding: 2rem 0 3rem;
-}
-
-.eyebrow {
-  text-transform: uppercase;
-  letter-spacing: 0.18em;
-  color: #c4b5fd;
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-
-h1 {
-  font-size: clamp(2.4rem, 5vw, 4.25rem);
-  line-height: 1.05;
-  margin: 0.35rem 0 1rem;
-}
-
-.hero-copy p {
-  font-size: 1.1rem;
-  max-width: 700px;
-  color: var(--muted);
-}
-
-.cta,
-.small-button,
-#guess-submit {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: 12px;
-  background: linear-gradient(135deg, var(--primary), #6366f1);
-  color: white;
-  padding: 0.9rem 1.5rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-  box-shadow: 0 12px 24px rgba(99, 102, 241, 0.35);
-  text-decoration: none;
-}
-
-.cta:hover,
-.small-button:hover,
-#guess-submit:hover {
-  transform: translateY(-1px);
-}
-
-.hero-card {
-  display: grid;
-  gap: 1rem;
-}
-
-.mini-panel {
-  background: rgba(17, 24, 39, 0.9);
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 1.5rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  min-height: 120px;
-  box-shadow: var(--shadow);
-}
-
-.mini-panel strong {
-  font-size: 1.8rem;
-}
-
-.glow {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.18), rgba(15, 23, 42, 0.95));
-}
-
-.game-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1.5rem;
-}
-
-.game-card {
-  background: rgba(15, 23, 42, 0.84);
-  border: 1px solid var(--border);
-  border-radius: 22px;
-  box-shadow: var(--shadow);
-  padding: 1.5rem;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-}
-
-.card-header h2 {
-  margin: 0;
-}
-
-.small-button {
-  padding: 0.6rem 1rem;
-  font-size: 0.85rem;
-}
-
-.memory-board {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.75rem;
-  margin-top: 1rem;
-}
-
-.memory-card {
-  aspect-ratio: 1;
-  border: none;
-  border-radius: 14px;
-  font-size: 2rem;
-  background: linear-gradient(135deg, #1d4ed8, #7c3aed);
-  color: white;
-  cursor: pointer;
-  transition: transform 0.2s ease, opacity 0.2s ease;
-}
-
-.memory-card.hidden {
-  color: transparent;
-}
-
-.memory-card.matched {
-  background: linear-gradient(135deg, #15803d, #22c55e);
-  cursor: default;
-}
-
-.ttt-board {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.75rem;
-  margin-top: 1rem;
-}
-
-.cell {
-  aspect-ratio: 1;
-  font-size: clamp(2rem, 5vw, 3rem);
-  border-radius: 14px;
-  border: 1px solid var(--border);
-  background: rgba(30, 41, 59, 0.9);
-  color: var(--text);
-  cursor: pointer;
-  font-weight: 800;
-}
-
-.cell:disabled {
-  cursor: default;
-  opacity: 0.95;
-}
-
-.guess-controls {
-  display: flex;
-  gap: 0.75rem;
-  margin-top: 1rem;
-}
-
-#guess-input {
-  flex: 1;
-  min-width: 0;
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid var(--border);
-  color: var(--text);
-  border-radius: 12px;
-  padding: 0.8rem 1rem;
-}
-
-#guess-message {
-  margin-top: 1rem;
-  color: var(--muted);
-  min-height: 48px;
-}
-
-@media (max-width: 900px) {
-  .hero,
-  .game-grid {
-    grid-template-columns: 1fr;
-  }
-}
-"path":"style.css"},{
+// 4. Start de Game Loop zodra het script geladen is
+requestAnimationFrame(loop);
