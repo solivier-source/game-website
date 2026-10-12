@@ -1,262 +1,206 @@
-* {
-  box-sizing: border-box;
+// GameHub — game logic for Memory, Tic-Tac-Toe and Number Guessing
+
+const scores = { memory: 0, ttt: 0, guess: 0 };
+
+function updateTotalScore() {
+  const total = scores.memory + scores.ttt + scores.guess;
+  document.getElementById('total-score').textContent = total;
 }
 
-:root {
-  --bg: #0f172a;
-  --bg-soft: #111827;
-  --panel: rgba(15, 23, 42, 0.8);
-  --panel-strong: #1e293b;
-  --text: #e2e8f0;
-  --muted: #94a3b8;
-  --primary: #8b5cf6;
-  --primary-2: #22c55e;
-  --secondary: #f59e0b;
-  --danger: #ef4444;
-  --border: rgba(148, 163, 184, 0.2);
-  --shadow: 0 18px 50px rgba(15, 23, 42, 0.45);
+function setMood(text) {
+  document.getElementById('mood-status').textContent = text;
 }
 
-html {
-  scroll-behavior: smooth;
+/* ===================== Memory ===================== */
+const memoryEmojis = ['🎮', '🎯', '🎲', '🏆', '⭐', '🎨', '🎭', '🕹️'];
+let memoryCards = [];
+let memoryFlipped = [];
+let memoryLock = false;
+let memoryMatched = 0;
+
+function buildMemoryBoard() {
+  const board = document.getElementById('memory-board');
+  board.innerHTML = '';
+  memoryCards = [...memoryEmojis, ...memoryEmojis]
+    .map((emoji) => ({ emoji, shuffled: Math.random() }))
+    .sort((a, b) => a.shuffled - b.shuffled)
+    .map((item) => item.emoji);
+
+  memoryFlipped = [];
+  memoryLock = false;
+  memoryMatched = 0;
+
+  memoryCards.forEach((emoji, index) => {
+    const card = document.createElement('button');
+    card.className = 'memory-card hidden';
+    card.type = 'button';
+    card.textContent = emoji;
+    card.dataset.index = index;
+    card.addEventListener('click', () => flipMemoryCard(card, index));
+    board.appendChild(card);
+  });
 }
 
-body {
-  margin: 0;
-  font-family: 'Inter', sans-serif;
-  background: radial-gradient(circle at top, rgba(139, 92, 246, 0.22), transparent 30%),
-    linear-gradient(135deg, #020817, var(--bg));
-  color: var(--text);
-}
+function flipMemoryCard(card, index) {
+  if (memoryLock) return;
+  if (card.classList.contains('matched') || card.classList.contains('flipped')) return;
 
-button,
-input {
-  font: inherit;
-}
+  card.classList.remove('hidden');
+  card.classList.add('flipped');
+  memoryFlipped.push({ card, index });
 
-.topbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.25rem 6vw;
-  border-bottom: 1px solid var(--border);
-  background: rgba(15, 23, 42, 0.7);
-  backdrop-filter: blur(8px);
-  position: sticky;
-  top: 0;
-  z-index: 20;
-}
+  if (memoryFlipped.length === 2) {
+    memoryLock = true;
+    const [first, second] = memoryFlipped;
 
-.brand {
-  font-size: 1.5rem;
-  font-weight: 800;
-}
+    if (memoryCards[first.index] === memoryCards[second.index]) {
+      first.card.classList.add('matched');
+      second.card.classList.add('matched');
+      memoryMatched += 2;
+      scores.memory += 10;
+      document.getElementById('memory-score').textContent = scores.memory;
+      updateTotalScore();
+      setMood('Nice match! 🎉');
+      memoryFlipped = [];
+      memoryLock = false;
 
-nav {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-nav a {
-  color: var(--text);
-  text-decoration: none;
-  opacity: 0.8;
-}
-
-nav a:hover {
-  opacity: 1;
-}
-
-main {
-  width: min(1200px, 90vw);
-  margin: 0 auto;
-  padding: 3rem 0 5rem;
-}
-
-.hero {
-  display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
-  gap: 2rem;
-  align-items: center;
-  padding: 2rem 0 3rem;
-}
-
-.eyebrow {
-  text-transform: uppercase;
-  letter-spacing: 0.18em;
-  color: #c4b5fd;
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-
-h1 {
-  font-size: clamp(2.4rem, 5vw, 4.25rem);
-  line-height: 1.05;
-  margin: 0.35rem 0 1rem;
-}
-
-.hero-copy p {
-  font-size: 1.1rem;
-  max-width: 700px;
-  color: var(--muted);
-}
-
-.cta,
-.small-button,
-#guess-submit {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: 12px;
-  background: linear-gradient(135deg, var(--primary), #6366f1);
-  color: white;
-  padding: 0.9rem 1.5rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-  box-shadow: 0 12px 24px rgba(99, 102, 241, 0.35);
-  text-decoration: none;
-}
-
-.cta:hover,
-.small-button:hover,
-#guess-submit:hover {
-  transform: translateY(-1px);
-}
-
-.hero-card {
-  display: grid;
-  gap: 1rem;
-}
-
-.mini-panel {
-  background: rgba(17, 24, 39, 0.9);
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 1.5rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  min-height: 120px;
-  box-shadow: var(--shadow);
-}
-
-.mini-panel strong {
-  font-size: 1.8rem;
-}
-
-.glow {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.18), rgba(15, 23, 42, 0.95));
-}
-
-.game-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1.5rem;
-}
-
-.game-card {
-  background: rgba(15, 23, 42, 0.84);
-  border: 1px solid var(--border);
-  border-radius: 22px;
-  box-shadow: var(--shadow);
-  padding: 1.5rem;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-}
-
-.card-header h2 {
-  margin: 0;
-}
-
-.small-button {
-  padding: 0.6rem 1rem;
-  font-size: 0.85rem;
-}
-
-.memory-board {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.75rem;
-  margin-top: 1rem;
-}
-
-.memory-card {
-  aspect-ratio: 1;
-  border: none;
-  border-radius: 14px;
-  font-size: 2rem;
-  background: linear-gradient(135deg, #1d4ed8, #7c3aed);
-  color: white;
-  cursor: pointer;
-  transition: transform 0.2s ease, opacity 0.2s ease;
-}
-
-.memory-card.hidden {
-  color: transparent;
-}
-
-.memory-card.matched {
-  background: linear-gradient(135deg, #15803d, #22c55e);
-  cursor: default;
-}
-
-.ttt-board {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.75rem;
-  margin-top: 1rem;
-}
-
-.cell {
-  aspect-ratio: 1;
-  font-size: clamp(2rem, 5vw, 3rem);
-  border-radius: 14px;
-  border: 1px solid var(--border);
-  background: rgba(30, 41, 59, 0.9);
-  color: var(--text);
-  cursor: pointer;
-  font-weight: 800;
-}
-
-.cell:disabled {
-  cursor: default;
-  opacity: 0.95;
-}
-
-.guess-controls {
-  display: flex;
-  gap: 0.75rem;
-  margin-top: 1rem;
-}
-
-#guess-input {
-  flex: 1;
-  min-width: 0;
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid var(--border);
-  color: var(--text);
-  border-radius: 12px;
-  padding: 0.8rem 1rem;
-}
-
-#guess-message {
-  margin-top: 1rem;
-  color: var(--muted);
-  min-height: 48px;
-}
-
-@media (max-width: 900px) {
-  .hero,
-  .game-grid {
-    grid-template-columns: 1fr;
+      if (memoryMatched === memoryCards.length) {
+        setMood('Memory complete! 🏆');
+      }
+    } else {
+      setTimeout(() => {
+        first.card.classList.add('hidden');
+        first.card.classList.remove('flipped');
+        second.card.classList.add('hidden');
+        second.card.classList.remove('flipped');
+        memoryFlipped = [];
+        memoryLock = false;
+      }, 800);
+    }
   }
 }
-"path":"style.css"},{
+
+document.getElementById('memory-reset').addEventListener('click', () => {
+  buildMemoryBoard();
+  setMood('Memory reset');
+});
+
+/* ===================== Tic-Tac-Toe ===================== */
+let tttBoard = Array(9).fill('');
+let tttCurrent = 'X';
+let tttActive = true;
+
+const tttWinCombos = [
+  [0, 1, 2], [3, 4, 5], [6, 7, 8],
+  [0, 3, 6], [1, 4, 7], [2, 5, 8],
+  [0, 4, 8], [2, 4, 6],
+];
+
+function tttCheckWin() {
+  for (const combo of tttWinCombos) {
+    const [a, b, c] = combo;
+    if (tttBoard[a] && tttBoard[a] === tttBoard[b] && tttBoard[a] === tttBoard[c]) {
+      return tttBoard[a];
+    }
+  }
+  if (tttBoard.every((cell) => cell)) return 'draw';
+  return null;
+}
+
+function tttHandleClick(cell, index) {
+  if (!tttActive || tttBoard[index]) return;
+
+  tttBoard[index] = tttCurrent;
+  cell.textContent = tttCurrent;
+  cell.disabled = true;
+
+  const result = tttCheckWin();
+  if (result === 'draw') {
+    document.getElementById('ttt-status').textContent = 'Gelijkspel!';
+    tttActive = false;
+    setMood('Draw 🤝');
+  } else if (result) {
+    document.getElementById('ttt-status').textContent = `Speler ${result} wint!`;
+    scores.ttt += 10;
+    document.getElementById('ttt-score').textContent = scores.ttt;
+    updateTotalScore();
+    tttActive = false;
+    setMood(`${result} wins! 🏆`);
+  } else {
+    tttCurrent = tttCurrent === 'X' ? 'O' : 'X';
+    document.getElementById('ttt-status').textContent = `Speler ${tttCurrent} is aan de beurt`;
+  }
+}
+
+function buildTicTacToe() {
+  tttBoard = Array(9).fill('');
+  tttCurrent = 'X';
+  tttActive = true;
+  document.getElementById('ttt-status').textContent = 'Speler X is aan de beurt';
+
+  document.querySelectorAll('.cell').forEach((cell) => {
+    cell.textContent = '';
+    cell.disabled = false;
+    cell.addEventListener('click', () => tttHandleClick(cell, Number(cell.dataset.index)));
+  });
+}
+
+document.getElementById('ttt-reset').addEventListener('click', () => {
+  buildTicTacToe();
+  setMood('Tic-Tac-Toe reset');
+});
+
+/* ===================== Number Guessing ===================== */
+let guessTarget = 0;
+let guessAttempts = 0;
+let guessActive = true;
+
+function newGuessGame() {
+  guessTarget = Math.floor(Math.random() * 100) + 1;
+  guessAttempts = 0;
+  guessActive = true;
+  document.getElementById('guess-message').textContent = 'Je hebt 0 poging(en).';
+  document.getElementById('guess-input').value = '';
+  setMood('New number game 🎲');
+}
+
+function checkGuess() {
+  if (!guessActive) return;
+  const input = document.getElementById('guess-input');
+  const value = parseInt(input.value, 10);
+
+  if (isNaN(value) || value < 1 || value > 100) {
+    document.getElementById('guess-message').textContent = 'Voer een getal tussen 1 en 100 in.';
+    return;
+  }
+
+  guessAttempts++;
+  const msg = document.getElementById('guess-message');
+
+  if (value === guessTarget) {
+    const points = Math.max(100 - guessAttempts * 10, 10);
+    scores.guess += points;
+    document.getElementById('guess-score').textContent = scores.guess;
+    updateTotalScore();
+    msg.textContent = `Correct! Je raadde het in ${guessAttempts} poging(en). +${points} punten.`;
+    guessActive = false;
+    setMood('Guessed it! 🎯');
+  } else if (value < guessTarget) {
+    msg.textContent = `Poging ${guessAttempts}: Hoger! ⬆️`;
+  } else {
+    msg.textContent = `Poging ${guessAttempts}: Lager! ⬇️`;
+  }
+
+  input.value = '';
+}
+
+document.getElementById('guess-submit').addEventListener('click', checkGuess);
+document.getElementById('guess-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') checkGuess();
+});
+document.getElementById('guess-reset').addEventListener('click', newGuessGame);
+
+/* ===================== Init ===================== */
+buildMemoryBoard();
+buildTicTacToe();
+newGuessGame();
