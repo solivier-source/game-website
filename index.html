@@ -4,6 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>GameHub</title>
+    <meta
+      name="description"
+      content="GameHub is een arcade-site met Memory, Tic-Tac-Toe en een getal-raden spel met score bijhouden."
+    />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet" />
@@ -12,7 +16,7 @@
   <body>
     <header class="topbar">
       <div class="brand">🎮 GameHub</div>
-      <nav>
+      <nav aria-label="Hoofdnavigatie">
         <a href="#memory">Memory</a>
         <a href="#tic-tac-toe">Tic-Tac-Toe</a>
         <a href="#guess">Getal raden</a>
@@ -26,17 +30,19 @@
           <h1>Speel een paar snelle mini-games</h1>
           <p>
             Ontdek verschillende spellen in één website: memory, tic-tac-toe en een getal-raden uitdaging.
+            Vergelijk je score en blijf spelen om hoger te scoren.
           </p>
           <a class="cta" href="#memory">Start nu</a>
         </div>
-        <div class="hero-card">
+
+        <div class="hero-card" aria-live="polite">
           <div class="mini-panel">
             <span>🏆 Score</span>
             <strong id="total-score">0</strong>
           </div>
           <div class="mini-panel glow">
             <span>⚡ Mood</span>
-            <strong>Ready to play</strong>
+            <strong id="mood-status">Ready to play</strong>
           </div>
         </div>
       </section>
@@ -45,40 +51,49 @@
         <article class="game-card" id="memory">
           <div class="card-header">
             <h2>Memory</h2>
-            <button class="small-button" id="memory-reset">Opnieuw</button>
+            <button class="small-button" id="memory-reset" type="button">Opnieuw</button>
           </div>
           <p>Vind alle paar combinaties.</p>
+          <div class="score-row">
+            <span>Score: <strong id="memory-score">0</strong></span>
+          </div>
           <div id="memory-board" class="memory-board" aria-label="Memory board"></div>
         </article>
 
         <article class="game-card" id="tic-tac-toe">
           <div class="card-header">
             <h2>Tic-Tac-Toe</h2>
-            <button class="small-button" id="ttt-reset">Reset</button>
+            <button class="small-button" id="ttt-reset" type="button">Reset</button>
           </div>
           <p id="ttt-status">Speler X is aan de beurt</p>
+          <div class="score-row">
+            <span>Score: <strong id="ttt-score">0</strong></span>
+          </div>
           <div class="ttt-board" id="ttt-board" aria-label="Tic tac toe board">
-            <button class="cell" data-index="0"></button>
-            <button class="cell" data-index="1"></button>
-            <button class="cell" data-index="2"></button>
-            <button class="cell" data-index="3"></button>
-            <button class="cell" data-index="4"></button>
-            <button class="cell" data-index="5"></button>
-            <button class="cell" data-index="6"></button>
-            <button class="cell" data-index="7"></button>
-            <button class="cell" data-index="8"></button>
+            <button class="cell" type="button" data-index="0" aria-label="Vak 1"></button>
+            <button class="cell" type="button" data-index="1" aria-label="Vak 2"></button>
+            <button class="cell" type="button" data-index="2" aria-label="Vak 3"></button>
+            <button class="cell" type="button" data-index="3" aria-label="Vak 4"></button>
+            <button class="cell" type="button" data-index="4" aria-label="Vak 5"></button>
+            <button class="cell" type="button" data-index="5" aria-label="Vak 6"></button>
+            <button class="cell" type="button" data-index="6" aria-label="Vak 7"></button>
+            <button class="cell" type="button" data-index="7" aria-label="Vak 8"></button>
+            <button class="cell" type="button" data-index="8" aria-label="Vak 9"></button>
           </div>
         </article>
 
         <article class="game-card" id="guess">
           <div class="card-header">
             <h2>Getal raden</h2>
-            <button class="small-button" id="guess-reset">Nieuw spel</button>
+            <button class="small-button" id="guess-reset" type="button">Nieuw spel</button>
           </div>
           <p>Raad het geheime getal tussen 1 en 100.</p>
+          <div class="score-row">
+            <span>Score: <strong id="guess-score">0</strong></span>
+          </div>
           <div class="guess-controls">
-            <input id="guess-input" type="number" min="1" max="100" placeholder="Typ een getal" />
-            <button id="guess-submit">Controleer</button>
+            <input id="guess-input" type="number" min="1" max="100" placeholder="Typ een getal" aria-label="Typ een getal" />
+            <button id="guess-submit" type="button">Controleer</button>
           </div>
           <p id="guess-message">Je hebt 0 poging(en).</p>
         </article>
